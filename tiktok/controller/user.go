@@ -35,7 +35,7 @@ func Register(c *gin.Context) {
 	}
 	out.Response = dto.Response{StatusCode: common.SuccessCode, StatusMsg: ""}
 	out.Token = token
-	out.UserId = int64(users.Model.ID)
+	out.UserId = int64(user.Model.ID)
 	c.JSON(http.StatusOK, out)
 }
 
