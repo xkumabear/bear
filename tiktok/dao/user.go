@@ -42,7 +42,7 @@ func (u *User) Find(db *gorm.DB, search *User) (*User, error) {
 }
 func (u *User) Save(db *gorm.DB) error {
 
-	return db.Save(u).Error
+	return db.Create(u).Error
 }
 
 func (u *User) Register(param *dto.RegisterInput) (*User, error) {
@@ -58,7 +58,7 @@ func (u *User) Register(param *dto.RegisterInput) (*User, error) {
 	saltPassword := common.MD5(param.Password)
 	u.Password = saltPassword
 	err = u.Save(db)
-	if err == nil {
+	if err != nil {
 		return user, err
 	}
 	return user, nil
