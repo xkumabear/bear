@@ -57,7 +57,7 @@ func (c *Comment) conn() *gorm.DB {
 //	//}
 //	return comment
 //}
-
+//test
 func (c *Comment) CommentAdd(param *dto.CommentActionInput) error {
 	db := c.conn()
 	defer db.Close()
