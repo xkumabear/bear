@@ -11,7 +11,8 @@ import (
 
 type User struct {
 	gorm.Model
-	Name          string `gorm:"DEFAULT:'未定义'"`
+	Name string `gorm:"DEFAULT:'未定义'"`
+	//Video         []Video `gorm:"ForeignKey:UserId;AssociationForeignKey:ID"`
 	Username      string
 	Password      string
 	FollowCount   int64  `gorm:"DEFAULT:0"`
