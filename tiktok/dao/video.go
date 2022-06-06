@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"strconv"
-	"strings"
 	"tiktok/common"
 	"tiktok/dto"
 	"time"
@@ -13,8 +11,8 @@ import (
 
 type Video struct {
 	gorm.Model
-	UserID        int64
-	User          User `gorm:"ForeignKey:UserID"`
+	UserID        int64 `gorm:"ForeignKey:UserID;AssociationForeignKey:Id"`
+	User          User
 	PlayUrl       string
 	CoverUrl      string
 	FavoriteCount int64
@@ -42,26 +40,13 @@ func (v *Video) VideoList(params *dto.FeedInput) (*[]Video, error) {
 		timeStr = time.Unix(params.LatestTime, 0).Format(timeLayout)
 	}
 
-	err := db.Model(videoList).Where("created_at < ?", timeStr).Preload("User").Find(&videoList).Error
+	err := db.Where("created_at < ?", timeStr).Find(&videoList).Error
 	if err != nil {
 		return &videoList, err
 	}
 	return &videoList, nil
+
 }
-
-func (v *Video) PublishVideoList(params *dto.PublishListInput) (*[]Video, error) {
-	db := v.conn()
-	defer db.Close()
-	var videoList []Video
-
-	err := db.Model(videoList).Where("user_id = ?", params.UserID).Preload("User").Find(&videoList).Error
-	if err != nil {
-		return &videoList, err
-	}
-
-	return &videoList, nil
-}
-
 func (v *Video) Find(db *gorm.DB, search *Video) (*Video, error) {
 	fmt.Println(search)
 	var video Video
@@ -71,7 +56,6 @@ func (v *Video) Find(db *gorm.DB, search *Video) (*Video, error) {
 	}
 	return &video, err
 }
-
 func (v *Video) Save(db *gorm.DB) error {
 	return db.Save(v).Error
 }
@@ -82,34 +66,8 @@ func (v *Video) Upload() error {
 	return v.Save(db)
 }
 
-func (v *Video) UpdateVideoByFavorite(params *dto.FavoriteInput) error {
-	db := v.conn()
-	defer db.Close()
-	var video Video
-	err := db.Model(video).Where("id = ?", params.VideoID).Find(&video).Error
-	if err != nil {
-		return err
-	}
-	video.FavoriteCount += 1
-	if params.ActionType == 1 {
-		video.FavoriteList += strconv.FormatInt(params.UserID, 10) + "#"
-	} else if params.ActionType == 2 {
-		strings.Replace(video.FavoriteList, strconv.FormatInt(params.UserID, 10)+"#", "", -1)
-	}
-	err = db.Update(video).Error
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//点赞
 
-func (v *Video) VideoListByFavorite(params *dto.FavoriteListInput) (*[]Video, error) {
-	db := v.conn()
-	defer db.Close()
-	var videoList []Video
-	err := db.Model(videoList).Where("favorite_list like ?", "%"+params.UserID+"%").Find(&videoList).Error
-	if err != nil {
-		return &videoList, err
-	}
-	return &videoList, nil
-}
+//上传
+
+//视频列表

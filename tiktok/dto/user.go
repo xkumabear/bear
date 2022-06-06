@@ -17,7 +17,7 @@ type RegisterInput struct {
 }
 
 func (params *RegisterInput) GetValidParams(c *gin.Context) error {
-	if err := c.ShouldBind(params); err != nil {
+	if err := c.ShouldBind(params); err != nil { //获得有效的参数
 		return err
 	}
 	return nil
@@ -48,9 +48,9 @@ func (params *UserInfoInput) GetValidParams(c *gin.Context) error {
 }
 
 type UserLoginResponse struct {
-	Response
-	UserId int64  `json:"user_id"`
-	Token  string `json:"token,omitempty"`
+	Response        //返回的响应 状态码   和   返回描述
+	UserId   int64  `json:"user_id"`         //返回用户的id
+	Token    string `json:"token,omitempty"` //用户鉴权
 }
 
 func (u *UserLoginResponse) ResponseError(statusCode int32, statusMsg string) {

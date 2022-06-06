@@ -5,19 +5,22 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"strconv"
+	"strings"
 	"tiktok/common"
 	"tiktok/dto"
 )
 
 type User struct {
 	gorm.Model
-	Name string `gorm:"DEFAULT:'未定义'"`
-	//Video         []Video `gorm:"ForeignKey:UserId;AssociationForeignKey:ID"`
+	Name          string `gorm:"DEFAULT:'未定义'"`
 	Username      string
 	Password      string
 	FollowCount   int64  `gorm:"DEFAULT:0"`
 	FollowerCount int64  `gorm:"DEFAULT:0"`
 	FollowList    string `gorm:"DEFAULT:''"`
+	FollowerList  string `gorm:"DEFAULT:''"`
+	IsFollow      int64  `gorm:"DEFAULT:0"`
 }
 
 func init() {
@@ -28,18 +31,33 @@ func (u *User) conn() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-	//db.AutoMigrate(&User{})
+	db.AutoMigrate(&User{})
 	return db
 }
 
 func (u *User) Find(db *gorm.DB, search *User) (*User, error) {
-	fmt.Println(search)
+	fmt.Println("用户：", search)
+
 	var user User
 	err := db.Where(search).Find(&user).Error
-	if err != nil {
+
+	if err != nil { //有错误  和 空
 		return nil, err
 	}
-	return &user, err
+
+	return &user, err // 空  找到了
+}
+
+func (u *User) Search(db *gorm.DB, id uint) error {
+
+	err := db.Where("id=?", id).Find(u).Error
+	//fmt.Println(u)
+	if err != nil { //有错误
+		return err
+	}
+
+	return nil // 空  找到了
+
 }
 func (u *User) Save(db *gorm.DB) error {
 
@@ -47,19 +65,20 @@ func (u *User) Save(db *gorm.DB) error {
 }
 
 func (u *User) Register(param *dto.RegisterInput) (*User, error) {
-	db := u.conn()
+	db := u.conn() //连接数据库
 	defer db.Close()
-	user, err := u.Find(db, &User{Username: param.Username}) //, IsDelete: 0
-	if err == nil || user != nil {
+	user, err := u.Find(db, &User{Username: param.Username}) //, IsDelete: 0  在表中查找是否存在
+	if err == nil || user != nil {                           //  空 存在对象       错误 和 没有对象
 		return user, errors.New("已存在该用户，不可重复注册。") //打印堆栈
 	}
 
 	u.Name = param.Name
 	u.Username = param.Username
-	saltPassword := common.MD5(param.Password)
+	saltPassword := common.MD5(param.Password) // 加密
 	u.Password = saltPassword
 	err = u.Save(db)
-	if err != nil {
+
+	if err == nil {
 		return user, err
 	}
 	return user, nil
@@ -77,4 +96,68 @@ func (u *User) LoginCheck(param *dto.LoginInput) (*User, error) {
 		return nil, errors.New("密码错误！")
 	}
 	return user, nil
+}
+
+func (u *User) GetUsersList(param *dto.FollowListInput) *dto.FollowOutput {
+	out := &dto.FollowOutput{}
+
+	db := u.conn()
+	defer db.Close()
+
+	follows := u.FollowList //得到关注列表 字符串
+	userIds := strings.Split(follows, "#")
+	var userList []dto.User
+
+	for i := 0; i < len(userIds); i++ {
+		var user User
+		x, _ := strconv.Atoi(userIds[i])
+		id := uint(x)
+
+		if err := user.Search(db, id); err != nil {
+			continue
+		}
+		fmt.Println(user)
+		userList = append(userList, dto.User{
+			Id:            int64(user.Model.ID),
+			Name:          user.Username,
+			FollowCount:   user.FollowCount,
+			FollowerCount: user.FollowerCount,
+			IsFollow:      user.IsFollow == 1,
+		})
+	}
+
+	out.UserList = userList
+	return out
+}
+
+func (u *User) GetFollowerList(param *dto.FollowListInput) *dto.FollowOutput {
+	out := &dto.FollowOutput{}
+
+	db := u.conn()
+	defer db.Close()
+
+	followers := u.FollowerList //得到关注列表 字符串
+	userIds := strings.Split(followers, "#")
+	var userList []dto.User
+
+	for i := 0; i < len(userIds); i++ {
+		var user User
+		x, _ := strconv.Atoi(userIds[i])
+		id := uint(x)
+
+		if err := user.Search(db, id); err != nil {
+			continue
+		}
+		fmt.Println(user)
+		userList = append(userList, dto.User{
+			Id:            int64(user.Model.ID),
+			Name:          user.Username,
+			FollowCount:   user.FollowCount,
+			FollowerCount: user.FollowerCount,
+			IsFollow:      user.IsFollow == 1,
+		})
+	}
+
+	out.UserList = userList
+	return out
 }
