@@ -13,7 +13,8 @@ import (
 
 type User struct {
 	gorm.Model
-	Name          string `gorm:"DEFAULT:'未定义'"`
+	Name string `gorm:"DEFAULT:'未定义'"`
+	//Video         []Video `gorm:"ForeignKey:UserId;AssociationForeignKey:ID"`
 	Username      string
 	Password      string
 	FollowCount   int64  `gorm:"DEFAULT:0"`
@@ -31,21 +32,18 @@ func (u *User) conn() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-	db.AutoMigrate(&User{})
+	//db.AutoMigrate(&User{})
 	return db
 }
 
 func (u *User) Find(db *gorm.DB, search *User) (*User, error) {
-	fmt.Println("用户：", search)
-
+	fmt.Println(search)
 	var user User
 	err := db.Where(search).Find(&user).Error
-
-	if err != nil { //有错误  和 空
+	if err != nil {
 		return nil, err
 	}
-
-	return &user, err // 空  找到了
+	return &user, err
 }
 
 func (u *User) Search(db *gorm.DB, id uint) error {
@@ -59,26 +57,26 @@ func (u *User) Search(db *gorm.DB, id uint) error {
 	return nil // 空  找到了
 
 }
+
 func (u *User) Save(db *gorm.DB) error {
 
 	return db.Create(u).Error
 }
 
 func (u *User) Register(param *dto.RegisterInput) (*User, error) {
-	db := u.conn() //连接数据库
+	db := u.conn()
 	defer db.Close()
-	user, err := u.Find(db, &User{Username: param.Username}) //, IsDelete: 0  在表中查找是否存在
-	if err == nil || user != nil {                           //  空 存在对象       错误 和 没有对象
+	user, err := u.Find(db, &User{Username: param.Username}) //, IsDelete: 0
+	if err == nil || user != nil {
 		return user, errors.New("已存在该用户，不可重复注册。") //打印堆栈
 	}
 
 	u.Name = param.Name
 	u.Username = param.Username
-	saltPassword := common.MD5(param.Password) // 加密
+	saltPassword := common.MD5(param.Password)
 	u.Password = saltPassword
 	err = u.Save(db)
-
-	if err == nil {
+	if err != nil {
 		return user, err
 	}
 	return user, nil

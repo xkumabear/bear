@@ -12,12 +12,12 @@ func initRouter(r *gin.Engine) {
 	apiRouter := r.Group("/douyin")
 
 	// basic apis
-	apiRouter.POST("/user/register/", controller.Register)  //用户注册
-	apiRouter.POST("/user/login/", controller.Login)        //用户登陆
-	apiRouter.GET("/user/", controller.UserInfo)            // 用户信息
-	apiRouter.POST("/publish/action/", controller.Publish)  //发布信息
-	apiRouter.GET("/publish/list/", controller.PublishList) // 发布列表
-	apiRouter.GET("/feed/", controller.Feed)                //视频
+	apiRouter.GET("/feed/", controller.Feed)
+	apiRouter.GET("/user/", controller.UserInfo)
+	apiRouter.POST("/user/register/", controller.Register)
+	apiRouter.POST("/user/login/", controller.Login)
+	apiRouter.POST("/publish/action/", controller.Publish)
+	apiRouter.GET("/publish/list/", controller.PublishList)
 
 	// extra apis - I
 	apiRouter.POST("/favorite/action/", controller.FavoriteAction)
