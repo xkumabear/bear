@@ -76,7 +76,9 @@ func Add(fA *Follow, fB *Follow) error {
 	}
 
 	sB := "#" + userBIdString + "#"
-	if is := strings.Contains(fA.FollowerList, sB); is {
+	isA := strings.Contains(fA.FollowerList, sB)
+	isB := strings.Contains(fA.FollowList, sB)
+	if isA && isB {
 		fA.IsFollow = 1
 		fB.IsFollow = 1
 	} else {
@@ -109,7 +111,10 @@ func Delete(fA *Follow, fB *Follow) error {
 	fB.FollowerList = "#" + fB.FollowerList
 
 	sB := "#" + userBIdString + "#"
-	if is := strings.Contains(fA.FollowerList, sB); is {
+
+	isA := strings.Contains(fA.FollowerList, sB)
+	isB := strings.Contains(fA.FollowList, sB)
+	if isA && isB {
 		fA.IsFollow = 1
 		fB.IsFollow = 1
 	} else {
@@ -119,7 +124,7 @@ func Delete(fA *Follow, fB *Follow) error {
 	return nil
 }
 
-func (f *Follow) RelationCheck(param *dto.RelationInput) error {
+func (f *Follow) RelationCheck(param *dto.RelationInput) (*User, error) {
 	db := f.conn()
 	defer db.Close()
 	// 根据 id 查找用户 A B
@@ -128,13 +133,13 @@ func (f *Follow) RelationCheck(param *dto.RelationInput) error {
 	errA := uA.Search(db, param.UserAID) //查找 A ID
 	fmt.Println("用户A有错？:", errA)
 	if errA != nil { //没找到 A
-		return errA
+		return uA, errA
 	}
 	uB := &User{}                        //在user中查找 B id  是否存在
 	errB := uB.Search(db, param.UserBID) //, IsDelete: 0
 	fmt.Println("用户 B 有错？:", errB)
 	if errB != nil { //没找到 B
-		return errB
+		return uA, errB
 	}
 
 	fA, errFa := f.Find(db, &Follow{UserID: param.UserAID}) //在follow查找 A的粉丝
@@ -179,7 +184,7 @@ func (f *Follow) RelationCheck(param *dto.RelationInput) error {
 	db.Save(fA)
 	db.Save(fB)
 
-	return nil
+	return uA, nil
 }
 
 func DeleteStringElement(list []string, ele string) ([]string, error) {

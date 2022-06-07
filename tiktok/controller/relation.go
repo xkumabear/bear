@@ -30,7 +30,8 @@ func RelationAction(c *gin.Context) {
 
 		follow := &dao.Follow{}
 		params.UserAID = user.ID
-		err := follow.RelationCheck(params)
+		u, err := follow.RelationCheck(params)
+		usersLoginInfo[token] = *u
 		if err != nil {
 			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "to_user_id doesn't exist"})
 			return

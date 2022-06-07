@@ -11,8 +11,8 @@ import (
 
 type Video struct {
 	gorm.Model
-	UserID        int64 `gorm:"ForeignKey:UserID;AssociationForeignKey:Id"`
-	User          User
+	UserID        int64
+	User          User `gorm:"ForeignKey:UserID"`
 	PlayUrl       string
 	CoverUrl      string
 	FavoriteCount int64
@@ -40,13 +40,26 @@ func (v *Video) VideoList(params *dto.FeedInput) (*[]Video, error) {
 		timeStr = time.Unix(params.LatestTime, 0).Format(timeLayout)
 	}
 
-	err := db.Where("created_at < ?", timeStr).Find(&videoList).Error
+	err := db.Model(videoList).Where("created_at < ?", timeStr).Preload("User").Find(&videoList).Error
 	if err != nil {
 		return &videoList, err
 	}
 	return &videoList, nil
 
 }
+func (v *Video) PublishVideoList(params *dto.PublishListInput) (*[]Video, error) {
+	db := v.conn()
+	defer db.Close()
+	var videoList []Video
+
+	err := db.Model(videoList).Where("user_id = ?", params.UserID).Preload("User").Find(&videoList).Error
+	if err != nil {
+		return &videoList, err
+	}
+
+	return &videoList, nil
+}
+
 func (v *Video) Find(db *gorm.DB, search *Video) (*Video, error) {
 	fmt.Println(search)
 	var video Video
@@ -56,6 +69,7 @@ func (v *Video) Find(db *gorm.DB, search *Video) (*Video, error) {
 	}
 	return &video, err
 }
+
 func (v *Video) Save(db *gorm.DB) error {
 	return db.Save(v).Error
 }
@@ -65,9 +79,3 @@ func (v *Video) Upload() error {
 	defer db.Close()
 	return v.Save(db)
 }
-
-//点赞
-
-//上传
-
-//视频列表
