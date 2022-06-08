@@ -77,7 +77,7 @@ func UserInfo(c *gin.Context) {
 			Response: dto.Response{StatusCode: 0},
 			User: dto.User{
 				Id:            int64(user.Model.ID),
-				Name:          user.Username,
+				Name:          user.Name,
 				FollowCount:   user.FollowCount,
 				FollowerCount: user.FollowerCount,
 				IsFollow:      true,

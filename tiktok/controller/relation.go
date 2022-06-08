@@ -1,42 +1,20 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"tiktok/common"
-	"tiktok/dao"
-	"tiktok/dto"
 )
 
 type UserListResponse struct {
 	Response
-	UserList []dao.User `json:"user_list"`
+	UserList []User `json:"user_list"`
 }
 
 // RelationAction no practical effect, just check if token is valid
 func RelationAction(c *gin.Context) {
 	token := c.Query("token")
 
-	fmt.Println("Relation:")
-	if user, exist := usersLoginInfo[token]; exist {
-		params := &dto.RelationInput{}
-		if err := params.GetValidParams(c); err != nil { //获得有效参数  参数是否有错
-			out := &dto.Response{StatusCode: common.ParamsErr, StatusMsg: common.ParamsErrMsg}
-			c.JSON(http.StatusOK, out)
-			return
-		}
-		fmt.Println(token)
-
-		follow := &dao.Follow{}
-		params.UserAID = user.ID
-		u, err := follow.RelationCheck(params)
-		usersLoginInfo[token] = *u
-		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "to_user_id doesn't exist"})
-			return
-		}
-
+	if _, exist := usersLoginInfo[token]; exist {
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
 	} else {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
@@ -45,42 +23,20 @@ func RelationAction(c *gin.Context) {
 
 // FollowList all users have same follow list
 func FollowList(c *gin.Context) {
-	token := c.Query("token")
-	params := &dto.FollowListInput{}
-	if err := params.GetValidParams(c); err != nil { //获得有效参数  参数是否有错
-		out := &dto.Response{StatusCode: common.ParamsErr, StatusMsg: common.ParamsErrMsg}
-		c.JSON(http.StatusOK, out)
-		return
-	}
-
-	user, exist := usersLoginInfo[token]
-	if !exist {
-		out := &dto.Response{StatusCode: common.ParamsErrExist, StatusMsg: common.ParamsErrMsg}
-		c.JSON(http.StatusOK, out)
-		return
-	}
-
-	out := user.GetUsersList(params)
-	c.JSON(http.StatusOK, out)
+	c.JSON(http.StatusOK, UserListResponse{
+		Response: Response{
+			StatusCode: 0,
+		},
+		UserList: []User{DemoUser},
+	})
 }
 
 // FollowerList all users have same follower list
 func FollowerList(c *gin.Context) {
-	token := c.Query("token")
-	params := &dto.FollowListInput{}
-	if err := params.GetValidParams(c); err != nil { //获得有效参数  参数是否有错
-		out := &dto.Response{StatusCode: common.ParamsErr, StatusMsg: common.ParamsErrMsg}
-		c.JSON(http.StatusOK, out)
-		return
-	}
-
-	user, exist := usersLoginInfo[token]
-	if !exist {
-		out := &dto.Response{StatusCode: common.ParamsErrExist, StatusMsg: common.ParamsErrMsg}
-		c.JSON(http.StatusOK, out)
-		return
-	}
-
-	out := user.GetFollowerList(params)
-	c.JSON(http.StatusOK, out)
+	c.JSON(http.StatusOK, UserListResponse{
+		Response: Response{
+			StatusCode: 0,
+		},
+		UserList: []User{DemoUser},
+	})
 }
