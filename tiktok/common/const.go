@@ -11,7 +11,7 @@ const (
 	ParamsErr      = 101
 	ParamsErrExist = 102
 	SqlFindErr     = 202
-	DSN            = "root:root@tcp(localhost:3306)/tiktok?charset=utf8&parseTime=True&loc=Local"
+	DSN            = "douyin:123456@tcp(localhost:3306)/douyin?charset=utf8&parseTime=True&loc=Local"
 	DRIVER         = "mysql"
 	ParamsErrMsg   = "Params is invalid "
 	SqlFindErrMsg  = "Sql find is err"

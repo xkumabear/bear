@@ -80,7 +80,7 @@ func UserInfo(c *gin.Context) {
 				Name:          user.Name,
 				FollowCount:   user.FollowCount,
 				FollowerCount: user.FollowerCount,
-				IsFollow:      true,
+				IsFollow:      true, //默认是 true ?
 			},
 		})
 		return
