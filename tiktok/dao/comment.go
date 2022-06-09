@@ -11,8 +11,8 @@ import (
 
 type Comment struct {
 	gorm.Model
-	UserID int64
-	//User          User
+	UserID      int64
+	User        User
 	CommentText string
 	//CommentId   int64
 	VideoId  int64
@@ -96,15 +96,9 @@ func (c *Comment) FindCommentList(db *gorm.DB, search *CommentList) (*[]dto.Comm
 func (c *Comment) CommentAdd(param *dto.CommentActionInput) error {
 	db := c.conn()
 	defer db.Close()
-	//videoid, err := c.FindVideo(db, &comment{VideoId: param.VideoId}) //, IsDelete: 0
-	//if err == nil || user != nil {
-	//	return user, errors.New("已存在该用户，不可重复注册。") //打印堆栈
-	//}
-
 	c.UserID = param.UserId
 	c.CommentText = param.CommentText
 	c.VideoId = param.VideoId
-
 	err := db.Save(c).Error
 	//err = c.Save(db)
 	if err != nil {
@@ -116,14 +110,6 @@ func (c *Comment) CommentAdd(param *dto.CommentActionInput) error {
 func (c *Comment) CommentDelte(param *dto.CommentActionInput) error {
 	db := c.conn()
 	defer db.Close()
-	//videoid, err := c.FindVideo(db, &comment{VideoId: param.VideoId}) //, IsDelete: 0
-	//if err == nil || user != nil {
-	//	return user, errors.New("已存在该用户，不可重复注册。") //打印堆栈
-	//}
-
-	//c.UserID = param.UserId
-	//c.CommentText = param.CommentText
-	//c.VideoId = param.VideoId
 	c.ID = uint(param.CommentId)
 	err := db.Delete(c).Error
 	//err = c.Save(db)
@@ -133,25 +119,26 @@ func (c *Comment) CommentDelte(param *dto.CommentActionInput) error {
 	return nil
 }
 
-func (c *Comment) VideoCommentList(param *dto.CommentListRequire) (*dto.CommentListResponse, error) {
+func (c *Comment) VideoCommentList(param dto.CommentListRequire) (*[]Comment, error) {
 	db := c.conn()
 	defer db.Close()
-	//var clr dto.CommentListResponse
-	//用videoid 查库，返回CommentList
-	//fmt.Println(c)
-	//var cl CommentList
-	var clr dto.CommentListResponse
-
-	comments, err := c.FindCommentList(db, &CommentList{VideoId: param.VideoId})
-	clr.CommentList = *comments
-	fmt.Println("VideoCommentList")
-	fmt.Println(clr.CommentList)
-	//clr.CommentList = cl.CommentList
-	//c.ID = uint(param.CommentId)
-	//err := db.Delete(c).Error
-	//err = c.Save(db)
+	var commentlist []Comment
+	err := db.Model(commentlist).Where("video_id = ?", param.VideoId).Preload("User").Find(&commentlist).Error
 	if err != nil {
-		return &clr, err
+		return &commentlist, err
 	}
-	return &clr, nil
+	return &commentlist, nil
+}
+
+func (c *Comment) VideoIdCheck(param Comment) (*Video, error) {
+	db := c.conn()
+	defer db.Close()
+	var video *Video
+	video = new(Video)
+	video.Model.ID = uint(param.VideoId)
+	err := db.Where(video).Find(&video).Error
+	if err != nil {
+		return nil, err
+	}
+	return video, nil
 }

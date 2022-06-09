@@ -2,6 +2,7 @@ package dto
 
 import (
 	"github.com/gin-gonic/gin"
+	"tiktok/common"
 )
 
 //io
@@ -45,4 +46,9 @@ type CommentListRequire struct {
 
 func (u *CommentActionResponse) ResponseError(statusCode int32, statusMsg string) {
 	u.Response = Response{StatusCode: statusCode, StatusMsg: statusMsg}
+}
+func (u *CommentListResponse) ResponseSuccess(CommentList *[]Comment) {
+	u.StatusCode = common.SuccessCode
+	u.StatusMsg = "CommentList Success"
+	u.CommentList = *CommentList
 }

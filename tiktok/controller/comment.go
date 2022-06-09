@@ -108,52 +108,63 @@ func CommentAction(c *gin.Context) {
 func CommentList(c *gin.Context) {
 	//获取参数，校验
 	token := c.Query("token")
-	video_id := c.Query("video_id")
-	video_id_, _ := strconv.Atoi(video_id)
-	//CLR = dto.CommentListResponse{}
+	videoid := c.Query("video_id")
+	videoidInt, _ := strconv.Atoi(videoid)
+	out := &dto.CommentListResponse{}
+
 	if _, exist := usersLoginInfo[token]; exist {
-		//查库
+
 		var com dao.Comment
-		var require dto.CommentListRequire
-
-		//var clr dto.CommentListResponse
-		require.VideoId = 1
-		if video_id_ == 1 {
+		var params dto.CommentListRequire
+		com.VideoId = int64(videoidInt)
+		fmt.Println("com.VideoId:", com.VideoId)
+		//检查video_id
+		if _, err := com.VideoIdCheck(com); err == nil {
 			//text := c.Query("comment_text")
-			vcl, _ := com.VideoCommentList(&require)
-			fmt.Println("CommentListResponse")
-			fmt.Println(vcl)
-			//var out = vcl.CommentList
+			params.VideoId = com.VideoId
+			commentlist, _ := com.VideoCommentList(params)
 
-			//c.JSON(http.StatusOK, CommentListResponse{
-			//	Response: Response{StatusCode: 0, StatusMsg: "comment list"},
-			//	CommentList: Comment{
+			var outcommentlist []dto.Comment
+			for _, item := range *commentlist {
+				//timeLayout := "2006-01-02 15:04:05"
+				timeLayout := "01-02"
+				createtime := item.Model.CreatedAt.Format(timeLayout)
+				outcommentlist = append(outcommentlist,
+					dto.Comment{
+						Id: int64(item.Model.ID),
+						User: dto.User{
+							Id:            int64(item.User.Model.ID),
+							Name:          item.User.Name,
+							FollowCount:   item.User.FollowCount,
+							FollowerCount: item.User.FollowerCount,
+							IsFollow:      true, //没有关注列表，待完善
+
+						},
+						Content:    item.CommentText,
+						CreateDate: createtime,
+					})
+			}
+			out.ResponseSuccess(&outcommentlist)
+			c.JSON(http.StatusOK, out)
+			//c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
+			//	Comment: Comment{
 			//		Id: 1,
-			//		//User:       user,
-			//		Content:    "text",
+			//		//User:       "1",
+			//		Content:    "1234",
 			//		CreateDate: "05-01",
 			//	}})
-			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
-				Comment: Comment{
-					Id: 1,
-					//User:       "1",
-					Content:    "1234",
-					CreateDate: "05-01",
-				}})
 
 			return
 		}
-		c.JSON(http.StatusOK, Response{StatusCode: 0})
+		//_, err := com.VideoIdCheck(com)
+		//fmt.Println("err", err)
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "Video doesn't exist"})
 	} else {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 	}
 
-	//直接赋值
-
-	//查库赋值（先不写）
-
-	c.JSON(http.StatusOK, CommentListResponse{
-		Response:    Response{StatusCode: 0},
-		CommentList: DemoComments,
-	})
+	//c.JSON(http.StatusOK, CommentListResponse{
+	//	Response:    Response{StatusCode: 0},
+	//	CommentList: DemoComments,
+	//})
 }
