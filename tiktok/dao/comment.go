@@ -2,6 +2,7 @@ package dao
 
 //database
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"tiktok/common"
@@ -17,6 +18,17 @@ type Comment struct {
 	VideoId  int64
 	IsDelete bool `gorm:"DEFAULT:false"`
 }
+
+type CommentList struct {
+	gorm.Model
+	CommentList []Comment `json:"comment_list"` // 评论列表
+	VideoId     int64
+}
+
+//type VideoComment struct {
+//	gorm.Model
+//	VideoId int64
+//}
 
 //type follow struct {
 //	gorm.Model
@@ -48,6 +60,29 @@ func (c *Comment) conn() *gorm.DB {
 	return db
 }
 
+func (c *Comment) FindCommentList(db *gorm.DB, search *CommentList) (*[]dto.Comment, error) {
+	fmt.Println(search)
+	//var cl CommentList
+	var com []dto.Comment
+	err := db.Where(search.VideoId).Find(&com).Error
+	if err != nil {
+		return nil, err
+	}
+	//cl.CommentList = comments
+	fmt.Println("FindCommentList")
+	fmt.Println(com)
+	return &com, nil
+}
+
+//func (c *VideoComment) conn() *gorm.DB {
+//	db, err := gorm.Open(common.DRIVER, common.DSN)
+//	if err != nil {
+//		panic(err)
+//	}
+//	db.AutoMigrate(&Comment{})
+//	return db
+//}
+
 //func (c *comment) FindVideo(db *gorm.DB, search *comment) (*comment, error) {
 //	fmt.Println(search)
 //	//var user User
@@ -57,7 +92,7 @@ func (c *Comment) conn() *gorm.DB {
 //	//}
 //	return comment
 //}
-//test
+
 func (c *Comment) CommentAdd(param *dto.CommentActionInput) error {
 	db := c.conn()
 	defer db.Close()
@@ -96,4 +131,27 @@ func (c *Comment) CommentDelte(param *dto.CommentActionInput) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Comment) VideoCommentList(param *dto.CommentListRequire) (*dto.CommentListResponse, error) {
+	db := c.conn()
+	defer db.Close()
+	//var clr dto.CommentListResponse
+	//用videoid 查库，返回CommentList
+	//fmt.Println(c)
+	//var cl CommentList
+	var clr dto.CommentListResponse
+
+	comments, err := c.FindCommentList(db, &CommentList{VideoId: param.VideoId})
+	clr.CommentList = *comments
+	fmt.Println("VideoCommentList")
+	fmt.Println(clr.CommentList)
+	//clr.CommentList = cl.CommentList
+	//c.ID = uint(param.CommentId)
+	//err := db.Delete(c).Error
+	//err = c.Save(db)
+	if err != nil {
+		return &clr, err
+	}
+	return &clr, nil
 }

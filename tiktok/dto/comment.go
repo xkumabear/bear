@@ -1,6 +1,8 @@
 package dto
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 //io
 type CommentActionInput struct {
@@ -29,6 +31,16 @@ type Comment struct {
 type CommentActionResponse struct {
 	Response
 	Comment Comment `json:"comment,omitempty"`
+}
+
+type CommentListResponse struct {
+	CommentList []Comment `json:"comment_list"` // 评论列表
+	StatusCode  int64     `json:"status_code"`  // 状态码，0-成功，其他值-失败
+	StatusMsg   string    `json:"status_msg"`   // 返回状态描述
+}
+
+type CommentListRequire struct {
+	VideoId int64 `json:"video_id,omitempty"  form:"video_id"`
 }
 
 func (u *CommentActionResponse) ResponseError(statusCode int32, statusMsg string) {

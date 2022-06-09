@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"net/http"
+	"strconv"
 	"tiktok/common"
 	"tiktok/dao"
 	"tiktok/dto"
@@ -107,20 +109,38 @@ func CommentList(c *gin.Context) {
 	//获取参数，校验
 	token := c.Query("token")
 	video_id := c.Query("video_id")
-
+	video_id_, _ := strconv.Atoi(video_id)
+	//CLR = dto.CommentListResponse{}
 	if _, exist := usersLoginInfo[token]; exist {
-		if video_id == "1" {
-			text := c.Query("comment_text")
+		//查库
+		var com dao.Comment
+		var require dto.CommentListRequire
 
-			//写入数据库
+		//var clr dto.CommentListResponse
+		require.VideoId = 1
+		if video_id_ == 1 {
+			//text := c.Query("comment_text")
+			vcl, _ := com.VideoCommentList(&require)
+			fmt.Println("CommentListResponse")
+			fmt.Println(vcl)
+			//var out = vcl.CommentList
 
+			//c.JSON(http.StatusOK, CommentListResponse{
+			//	Response: Response{StatusCode: 0, StatusMsg: "comment list"},
+			//	CommentList: Comment{
+			//		Id: 1,
+			//		//User:       user,
+			//		Content:    "text",
+			//		CreateDate: "05-01",
+			//	}})
 			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
 				Comment: Comment{
 					Id: 1,
-					//User:       user,
-					Content:    text,
+					//User:       "1",
+					Content:    "1234",
 					CreateDate: "05-01",
 				}})
+
 			return
 		}
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
