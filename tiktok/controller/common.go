@@ -1,7 +1,13 @@
 package controller
 
 import (
+	"crypto/sha256"
+	"errors"
+	"fmt"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"tiktok/common"
+	"tiktok/dao"
+	"time"
 )
 
 type Response struct {
@@ -28,9 +34,44 @@ type Comment struct {
 }
 
 type User struct {
-	Id            int64  `json:"id,omitempty"`
-	Name          string `json:"name,omitempty"`
-	FollowCount   int64  `json:"follow_count,omitempty"`
-	FollowerCount int64  `json:"follower_count,omitempty"`
-	IsFollow      bool   `json:"is_follow,omitempty"`
+	dao.User
+	availableTime time.Time
+}
+
+var UsersLoginInfo = make(map[string]User)
+
+func CheckToken(token string) (dao.User, error) {
+	now := time.Now()
+	if user, exist := UsersLoginInfo[token]; exist && now.Before(user.availableTime) {
+		return user.User, nil
+	}
+	return dao.User{}, errors.New("")
+}
+
+func SetToken(username string, user dao.User) string {
+
+	token := GetSaltString(common.TokenKey, username)
+	now := time.Now()
+	mm, _ := time.ParseDuration("60m")
+	deadline := now.Add(mm)
+	UsersLoginInfo[token] = User{user, deadline}
+	return token
+}
+
+func UpdateTokenInfo(token string, user dao.User) error {
+	userInfo, exist := UsersLoginInfo[token]
+	if !exist {
+		return errors.New("token is not exist!")
+	}
+	UsersLoginInfo[token] = User{user, userInfo.availableTime}
+	return nil
+}
+
+func GetSaltString(salt, token string) string {
+	s1 := sha256.New()
+	s1.Write([]byte(token))
+	str1 := fmt.Sprintf("%x", s1.Sum(nil))
+	s2 := sha256.New()
+	s2.Write([]byte(str1 + salt))
+	return fmt.Sprintf("%x", s2.Sum(nil))
 }

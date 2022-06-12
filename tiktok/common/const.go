@@ -11,11 +11,17 @@ const (
 	ParamsErr      = 101
 	ParamsErrExist = 102
 	SqlFindErr     = 202
+	SqlAddErr      = 203
+	SqlDelErr      = 204
 	DSN            = "root:root@tcp(localhost:3306)/tiktok?charset=utf8&parseTime=True&loc=Local"
 	DRIVER         = "mysql"
 	ParamsErrMsg   = "Params is invalid "
 	SqlFindErrMsg  = "Sql find is err"
-	Url            = "http://127.0.0.1:8080"
+	SqlAddErrMsg   = "Sql add is err"
+	SqlDelErrMsg   = "Sql del is err"
+	Url            = "http://172.27.92.166:8080"
+	TokenKey       = "bear_tiktok"
+	Salt           = "bear_tiktok"
 )
 
 func MD5(s string) string {

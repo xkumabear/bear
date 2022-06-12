@@ -11,7 +11,6 @@ import (
 // usersLoginInfo use map to store user info, and key is username+password for demo
 // user data will be cleared every time the server starts
 // test data: username=zhanglei, password=douyin
-var usersLoginInfo = map[string]dao.User{}
 
 func Register(c *gin.Context) {
 	//username := c.Query("username")
@@ -23,8 +22,6 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	//需更改策略
-	token := params.Username + params.Password
 	user := &dao.User{}
 	users, err := user.Register(params)
 	if err != nil {
@@ -33,6 +30,7 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
+	token := SetToken(params.Username, *user)
 	out.Response = dto.Response{StatusCode: common.SuccessCode, StatusMsg: ""}
 	out.Token = token
 	out.UserId = int64(user.Model.ID)
@@ -47,7 +45,7 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	token := params.Username + params.Password
+
 	user := &dao.User{}
 	users, err := user.LoginCheck(params)
 	if err != nil {
@@ -55,7 +53,7 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	usersLoginInfo[token] = *users
+	token := SetToken(params.Username, *users)
 	out.Response = dto.Response{StatusCode: common.SuccessCode, StatusMsg: ""}
 	out.Token = token
 	out.UserId = int64(users.Model.ID)
@@ -72,7 +70,7 @@ func UserInfo(c *gin.Context) {
 		return
 	}
 	//token := c.Query("token")
-	if user, exist := usersLoginInfo[params.Token]; exist {
+	if user, err := CheckToken(params.Token); err == nil {
 		c.JSON(http.StatusOK, dto.UserOutput{
 			Response: dto.Response{StatusCode: 0},
 			User: dto.User{

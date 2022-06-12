@@ -5,7 +5,6 @@ import (
 )
 
 type RelationInput struct {
-	UserAID    uint   `json:"user_id" form:"user_id"`
 	Token      string `json:"token" form:"token" `
 	UserBID    uint   `json:"to_user_id" form:"to_user_id" `
 	ActionType string `json:"action_type" form:"action_type"`

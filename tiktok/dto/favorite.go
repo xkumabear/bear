@@ -6,7 +6,6 @@ import (
 )
 
 type FavoriteInput struct {
-	UserID     int64  `json:"user_id" form:"user_id" `
 	Token      string `json:"token" form:"token"`
 	VideoID    int64  `json:"video_id" form:"video_id" `
 	ActionType int64  `json:"action_type" form:"action_type" `

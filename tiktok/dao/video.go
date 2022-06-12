@@ -47,8 +47,8 @@ func (v *Video) VideoList(params *dto.FeedInput) (*[]Video, error) {
 		return &videoList, err
 	}
 	return &videoList, nil
-}
 
+}
 func (v *Video) PublishVideoList(params *dto.PublishListInput) (*[]Video, error) {
 	db := v.conn()
 	defer db.Close()
@@ -82,7 +82,7 @@ func (v *Video) Upload() error {
 	return v.Save(db)
 }
 
-func (v *Video) UpdateVideoByFavorite(params *dto.FavoriteInput) error {
+func (v *Video) UpdateVideoByFavorite(userid int64, params *dto.FavoriteInput) error {
 	db := v.conn()
 	defer db.Close()
 	var video Video
@@ -90,11 +90,12 @@ func (v *Video) UpdateVideoByFavorite(params *dto.FavoriteInput) error {
 	if err != nil {
 		return err
 	}
+
 	video.FavoriteCount += 1
 	if params.ActionType == 1 {
-		video.FavoriteList += strconv.FormatInt(params.UserID, 10) + "#"
+		video.FavoriteList += strconv.FormatInt(userid, 10) + "#"
 	} else if params.ActionType == 2 {
-		strings.Replace(video.FavoriteList, strconv.FormatInt(params.UserID, 10)+"#", "", -1)
+		strings.Replace(video.FavoriteList, strconv.FormatInt(userid, 10)+"#", "", -1)
 	}
 	err = db.Update(video).Error
 	if err != nil {
@@ -103,11 +104,12 @@ func (v *Video) UpdateVideoByFavorite(params *dto.FavoriteInput) error {
 	return nil
 }
 
-func (v *Video) VideoListByFavorite(params *dto.FavoriteListInput) (*[]Video, error) {
+func (v *Video) VideoListByFavorite(userid string) (*[]Video, error) {
 	db := v.conn()
 	defer db.Close()
 	var videoList []Video
-	err := db.Model(videoList).Where("favorite_list like ?", "%"+params.UserID+"%").Find(&videoList).Error
+
+	err := db.Model(videoList).Where("favorite_list like ?", "%"+userid+"%").Preload("User").Find(&videoList).Error
 	if err != nil {
 		return &videoList, err
 	}
