@@ -25,6 +25,7 @@ type Comment struct {
 	User       User   `json:"user"`
 	Content    string `json:"content,omitempty"`
 	CreateDate string `json:"create_date,omitempty"`
+	VideoId    string `json:"VideoId,omitempty"`
 }
 
 type User struct {
