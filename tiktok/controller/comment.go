@@ -48,21 +48,26 @@ func CommentAction(c *gin.Context) {
 			}
 			userIdString := fmt.Sprintf("%s#", strconv.Itoa(int(user.Model.ID)))
 			isFollow := strings.Contains(userObject.FollowerList, userIdString)
+			//fmt.Println(isFollow)
 			timeLayout := "01-02"
 			createTime := com.CreatedAt.Format(timeLayout)
+			fmt.Println("CommentAction")
+			fmt.Println(int64(userObject.ID))
+			fmt.Println(userObject.Name)
 			//dto返回json
 			out = &dto.CommentActionResponse{
 				Response: dto.Response{
 					StatusCode: 0,
 					StatusMsg:  "Msg sent",
 				},
+
 				Comment: dto.Comment{
 					Id: int64(com.ID),
 					User: dto.User{
-						Id:            int64(userObject.ID),
-						Name:          userObject.Name,
-						FollowCount:   userObject.FollowCount,
-						FollowerCount: userObject.FollowerCount,
+						Id:            int64(user.ID),
+						Name:          user.Name,
+						FollowCount:   user.FollowCount,
+						FollowerCount: user.FollowerCount,
 						IsFollow:      isFollow,
 					},
 					Content:    com.CommentText,
@@ -94,9 +99,9 @@ func CommentAction(c *gin.Context) {
 					Id: 0,
 					User: dto.User{
 						Id:            int64(userObject.ID),
-						Name:          userObject.Name,
-						FollowCount:   userObject.FollowCount,
-						FollowerCount: userObject.FollowerCount,
+						Name:          user.Name,
+						FollowCount:   user.FollowCount,
+						FollowerCount: user.FollowerCount,
 						IsFollow:      isFollow,
 					},
 					Content:    com.CommentText,
