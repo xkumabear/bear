@@ -31,17 +31,23 @@ func RelationAction(c *gin.Context) {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
+	
+	if user.ID == params.UserBID {
+		c.JSON(http.StatusOK, Response{StatusCode: 0})
+		return
+	}
+
 	users := &dao.User{}
 	err = users.RelationCheck(user.ID, params)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "relation illegal!"})
 		return
 	}
-	err = UpdateTokenInfo(params.Token, *users)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token doesn't exist"})
-		return
-	}
+	//err = UpdateTokenInfo(params.Token, *users)
+	//if err != nil {
+	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token doesn't exist"})
+	//	return
+	//}
 
 	c.JSON(http.StatusOK, Response{StatusCode: 0})
 

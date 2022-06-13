@@ -106,7 +106,6 @@ func (u *User) Search(db *gorm.DB, id uint) (*User, error) {
 	return &user, nil // 空  找到了
 
 }
-
 func (u *User) GetUsersList(param *dto.FollowListInput) (*[]User, error) {
 	db := u.conn()
 	defer db.Close()
@@ -172,44 +171,53 @@ func (u *User) RelationCheck(userid uint, param *dto.RelationInput) error {
 	//var u *User
 	var userA User
 	err := db.Model(userA).Where("id = ?", userid).Find(&userA).Error
-	if err == nil {
+	if err != nil {
+		fmt.Println("userA:", err)
 		return err
 	}
+
 	var userB User
 	err = db.Model(userB).Where("id = ? ", param.UserBID).Find(&userB).Error
 	if err != nil {
+		fmt.Println("userB:", err)
 		return err
 	}
 
 	if param.ActionType == "1" { // 关注  查找 A 是否 关注 B  查找 B 是否 关注 A
+		fmt.Println("get action:")
 		userBid := strconv.FormatInt(int64(param.UserBID), 10) + "#"
 		isExist := strings.Contains(userA.FollowList, userBid)
 		if isExist {
-			return errors.New("relation is exist!")
+			fmt.Println("have action!")
+			return nil
+			//return errors.New("relation is exist!")
 		}
 		userA.FollowList += userBid
 		userA.FollowCount++
 		userAid := strconv.FormatInt(int64(userid), 10) + "#"
 		userB.FollowerList += userAid
 		userB.FollowerCount++
-		db.Update(userA)
-		db.Update(userB)
+		db.Save(userA)
+		db.Save(userB)
 
 	}
 
 	if param.ActionType == "2" { //取消关注
+		fmt.Println("don't have action:")
 		userBid := strconv.FormatInt(int64(param.UserBID), 10) + "#"
 		isExist := strings.Contains(userA.FollowList, userBid)
 		if !isExist {
-			return errors.New("relation is not exist!")
+			fmt.Println("have not action!")
+			return nil
+			//return errors.New("relation is not exist!")
 		}
-		strings.Replace(userA.FollowList, userBid, "", -1)
+		userA.FollowList = strings.Replace(userA.FollowList, userBid, "", -1)
 		userA.FollowCount--
 		userAid := strconv.FormatInt(int64(userid), 10) + "#"
-		strings.Replace(userB.FollowerList, userAid, "", -1)
+		userB.FollowerList = strings.Replace(userB.FollowerList, userAid, "", -1)
 		userB.FollowerCount--
-		db.Update(userA)
-		db.Update(userB)
+		db.Save(userA)
+		db.Save(userB)
 	}
 
 	return nil

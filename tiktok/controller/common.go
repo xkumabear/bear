@@ -1,10 +1,14 @@
 package controller
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	ffmpeg "github.com/u2takey/ffmpeg-go"
+	"io"
+	"os"
 	"tiktok/common"
 	"tiktok/dao"
 	"time"
@@ -74,4 +78,18 @@ func GetSaltString(salt, token string) string {
 	s2 := sha256.New()
 	s2.Write([]byte(str1 + salt))
 	return fmt.Sprintf("%x", s2.Sum(nil))
+}
+
+func ReadFrameAsJpeg(inFileName string, frameNum int) io.Reader {
+	buf := bytes.NewBuffer(nil)
+	err := ffmpeg.Input(inFileName).
+		Filter("select", ffmpeg.Args{fmt.Sprintf("gte(n,%d)", frameNum)}).
+		Output("pipe:", ffmpeg.KwArgs{"vframes": 1, "format": "image2", "vcodec": "mjpeg"}).
+		WithOutput(buf, os.Stdout).
+		Run()
+	if err != nil {
+		println(inFileName)
+		panic(err)
+	}
+	return buf
 }

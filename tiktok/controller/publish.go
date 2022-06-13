@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"path/filepath"
@@ -37,9 +38,8 @@ func Publish(c *gin.Context) {
 	finalName := fmt.Sprintf("%d_%s", user.Model.ID, filename)
 	saveFile := filepath.Join("./public/", finalName)
 	finalUrl := fmt.Sprintf("%s/static/%s", common.Url, finalName)
-	video := &dao.Video{User: user, PlayUrl: finalUrl, Title: params.Title}
-	video.Upload()
 
+	//cover
 	if err := c.SaveUploadedFile(params.Data, saveFile); err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -47,6 +47,27 @@ func Publish(c *gin.Context) {
 		})
 		return
 	}
+	reader := ReadFrameAsJpeg(saveFile, 5)
+	img, err := imaging.Decode(reader)
+	if err != nil {
+		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
+		c.JSON(http.StatusOK, out)
+		return
+	}
+	name := strings.Split(filename, ".")
+	finalImgName := fmt.Sprintf("%d_%s.jpeg", user.Model.ID, name)
+	saveImgFile := filepath.Join("./public/", finalImgName)
+	finalImgUrl := fmt.Sprintf("%s/static/%s", common.Url, finalImgName)
+	err = imaging.Save(img, saveImgFile)
+	if err != nil {
+		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
+		c.JSON(http.StatusOK, out)
+		return
+	}
+
+	video := &dao.Video{User: user, PlayUrl: finalUrl, CoverUrl: finalImgUrl, Title: params.Title}
+	video.Upload()
+
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
 		StatusMsg:  finalName + " uploaded successfully",
@@ -68,7 +89,7 @@ func PublishList(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	userIdString := strconv.Itoa(int(user.Model.ID))
+	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
 	video := &dao.Video{}
 	videoList, err := video.PublishVideoList(params)
 	if err != nil {
@@ -77,7 +98,7 @@ func PublishList(c *gin.Context) {
 	var outVideoList []dto.Video
 
 	for _, item := range *videoList {
-		isFollow := strings.Contains(item.User.FollowList, userIdString)
+		isFollow := strings.Contains(item.User.FollowerList, userIdString)
 		isFavorite := strings.Contains(item.FavoriteList, userIdString)
 		outVideoList = append(outVideoList, dto.Video{
 			Id: int64(item.Model.ID),

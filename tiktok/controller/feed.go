@@ -26,20 +26,46 @@ func Feed(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	user, err := CheckToken(params.Token)
-	if err != nil {
-		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
-		c.JSON(http.StatusOK, out)
-		return
-	}
-	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
+
 	video := &dao.Video{}
 	videoList, err := video.VideoList(params)
 	if err != nil {
 		out.ResponseError(common.SqlFindErr, common.SqlFindErrMsg)
 	}
 	var outVideoList []dto.Video
+	user, err := CheckToken(params.Token)
+	if err != nil {
+		for _, item := range *videoList {
+			outVideoList = append(outVideoList, dto.Video{
+				Id: int64(item.Model.ID),
+				Author: dto.User{
+					Id:            int64(item.User.Model.ID),
+					Name:          item.User.Name,
+					FollowCount:   item.User.FollowCount,
+					FollowerCount: item.User.FollowerCount,
+					IsFollow:      false,
+				},
+				PlayUrl:       item.PlayUrl,
+				CoverUrl:      item.CoverUrl,
+				FavoriteCount: item.FavoriteCount,
+				CommentCount:  item.CommentCount,
+				IsFavorite:    false,
+				Title:         item.Title,
+			})
+		}
+		var nextTime int64 = 0
+		if l := len((*videoList)); l > 0 {
+			nextTime = (*videoList)[0].CreatedAt.Unix()
+		} else {
+			nextTime = time.Now().Unix()
 
+		}
+		out.ResponseSuccess(&outVideoList, nextTime)
+		c.JSON(http.StatusOK, out)
+		return
+	}
+
+	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
 	for _, item := range *videoList {
 		isFollow := strings.Contains(item.User.FollowerList, userIdString)
 		isFavorite := strings.Contains(item.FavoriteList, userIdString)

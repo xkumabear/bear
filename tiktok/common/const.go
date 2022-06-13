@@ -19,7 +19,7 @@ const (
 	SqlFindErrMsg  = "Sql find is err"
 	SqlAddErrMsg   = "Sql add is err"
 	SqlDelErrMsg   = "Sql del is err"
-	Url            = "http://172.27.92.166:8080"
+	Url            = "http://172.27.7.47:8080"
 	TokenKey       = "bear_tiktok"
 	Salt           = "bear_tiktok"
 )

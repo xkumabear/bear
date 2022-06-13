@@ -42,7 +42,7 @@ func (v *Video) VideoList(params *dto.FeedInput) (*[]Video, error) {
 		timeStr = time.Unix(params.LatestTime, 0).Format(timeLayout)
 	}
 
-	err := db.Model(videoList).Where("created_at < ?", timeStr).Preload("User").Find(&videoList).Error
+	err := db.Model(videoList).Where("created_at < ?", timeStr).Preload("User").Limit(30).Order("created_at").Find(&videoList).Error
 	if err != nil {
 		return &videoList, err
 	}
