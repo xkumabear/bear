@@ -90,14 +90,15 @@ func (v *Video) UpdateVideoByFavorite(userid int64, params *dto.FavoriteInput) e
 	if err != nil {
 		return err
 	}
-
-	video.FavoriteCount += 1
 	if params.ActionType == 1 {
+		video.FavoriteCount += 1
 		video.FavoriteList += strconv.FormatInt(userid, 10) + "#"
 	} else if params.ActionType == 2 {
-		strings.Replace(video.FavoriteList, strconv.FormatInt(userid, 10)+"#", "", -1)
+		video.FavoriteCount -= 1
+		video.FavoriteList = strings.Replace(video.FavoriteList, strconv.FormatInt(userid, 10)+"#", "", -1)
 	}
-	err = db.Update(video).Error
+	fmt.Println(video.FavoriteList)
+	err = db.Model(&Video{}).Where("id = ?", params.VideoID).Update(&video).Error
 	if err != nil {
 		return err
 	}
