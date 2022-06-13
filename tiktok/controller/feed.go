@@ -26,13 +26,13 @@ func Feed(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	user, exist := usersLoginInfo[params.Token]
-	if !exist {
+	user, err := CheckToken(params.Token)
+	if err != nil {
 		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	userIdString := strconv.Itoa(int(user.Model.ID))
+	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
 	video := &dao.Video{}
 	videoList, err := video.VideoList(params)
 	if err != nil {
@@ -41,7 +41,7 @@ func Feed(c *gin.Context) {
 	var outVideoList []dto.Video
 
 	for _, item := range *videoList {
-		isFollow := strings.Contains(item.User.FollowList, userIdString)
+		isFollow := strings.Contains(item.User.FollowerList, userIdString)
 		isFavorite := strings.Contains(item.FavoriteList, userIdString)
 		outVideoList = append(outVideoList, dto.Video{
 			Id: int64(item.Model.ID),

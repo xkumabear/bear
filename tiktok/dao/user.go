@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -59,7 +60,7 @@ func (u *User) Register(param *dto.RegisterInput) (*User, error) {
 
 	u.Name = param.Name
 	u.Username = param.Username
-	saltPassword := common.MD5(param.Password)
+	saltPassword := GetSaltString(common.Salt, param.Password)
 	u.Password = saltPassword
 	err = u.Save(db)
 	if err != nil {
@@ -75,11 +76,20 @@ func (u *User) LoginCheck(param *dto.LoginInput) (*User, error) {
 	if err != nil {
 		return nil, errors.New("用户名错误！") //打印堆栈
 	}
-	saltPassword := common.MD5(param.Password)
+	saltPassword := GetSaltString(common.Salt, param.Password)
 	if user.Password != saltPassword {
 		return nil, errors.New("密码错误！")
 	}
 	return user, nil
+}
+
+func GetSaltString(salt, password string) string {
+	s1 := sha256.New()
+	s1.Write([]byte(password))
+	str1 := fmt.Sprintf("%x", s1.Sum(nil))
+	s2 := sha256.New()
+	s2.Write([]byte(str1 + salt))
+	return fmt.Sprintf("%x", s2.Sum(nil))
 }
 
 func (u *User) Search(db *gorm.DB, id uint) (*User, error) {
@@ -101,29 +111,25 @@ func (u *User) GetUsersList(param *dto.FollowListInput) (*[]User, error) {
 	db := u.conn()
 	defer db.Close()
 
-	follows := u.FollowList //得到关注列表 字符串
-	userIds := strings.Split(follows, "#")
+	user, err := u.Search(db, param.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	follows := user.FollowList //得到关注列表 字符串
+	users := strings.Split(follows, "#")
 	var userList []User
 
-	size := 0
-	fmt.Println("userIds:", userIds)
-	for i := 0; i < len(userIds); i++ {
-		fmt.Println("i:", i)
-
-		x, _ := strconv.Atoi(userIds[i])
-		id := uint(x)
-
-		user, err := u.Search(db, id)
+	for _, item := range users {
+		x, _ := strconv.Atoi(item)
+		userInfo, err := u.Search(db, uint(x))
 		if err != nil {
 			continue
 		}
-		fmt.Println("user", user)
-		userList = append(userList, *user)
-		size++
+		userList = append(userList, *userInfo)
 	}
 
-	var err error = nil
-	if size == 0 {
+	if len(users) == 0 {
 		err = errors.New("没有关注人信息")
 	}
 
@@ -134,28 +140,87 @@ func (u *User) GetFollowerList(param *dto.FollowListInput) (*[]User, error) {
 	db := u.conn()
 	defer db.Close()
 
-	followers := u.FollowerList //得到关注列表 字符串
-	userIds := strings.Split(followers, "#")
+	user, err := u.Search(db, param.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	followers := user.FollowerList //得到关注列表 字符串
+	users := strings.Split(followers, "#")
 	var userList []User
 
-	size := 0
-	for i := 0; i < len(userIds); i++ {
-		x, _ := strconv.Atoi(userIds[i])
-		id := uint(x)
-
-		user, err := u.Search(db, id)
+	for _, item := range users {
+		x, _ := strconv.Atoi(item)
+		userInfo, err := u.Search(db, uint(x))
 		if err != nil {
 			continue
 		}
-		fmt.Println(user)
-		userList = append(userList, *user)
-		size++
+		userList = append(userList, *userInfo)
 	}
 
-	var err error = nil
-	if size == 0 {
-		err = errors.New("没有粉丝信息")
+	if len(users) == 0 {
+		err = errors.New("没有关注人信息")
 	}
 
 	return &userList, err
+}
+
+func (u *User) RelationCheck(userid uint, param *dto.RelationInput) error {
+	db := u.conn()
+	defer db.Close()
+	// 根据 id 查找用户 A B
+	//var u *User
+	var userA User
+	err := db.Model(userA).Where("id = ?", userid).Find(&userA).Error
+	if err != nil {
+		fmt.Println("userA:", err)
+		return err
+	}
+
+	var userB User
+	err = db.Model(userB).Where("id = ? ", param.UserBID).Find(&userB).Error
+	if err != nil {
+		fmt.Println("userB:", err)
+		return err
+	}
+
+	if param.ActionType == "1" { // 关注  查找 A 是否 关注 B  查找 B 是否 关注 A
+		fmt.Println("get action:")
+		userBid := strconv.FormatInt(int64(param.UserBID), 10) + "#"
+		isExist := strings.Contains(userA.FollowList, userBid)
+		if isExist {
+			fmt.Println("have action!")
+			return nil
+			//return errors.New("relation is exist!")
+		}
+		userA.FollowList += userBid
+		userA.FollowCount++
+		userAid := strconv.FormatInt(int64(userid), 10) + "#"
+		userB.FollowerList += userAid
+		userB.FollowerCount++
+		db.Save(userA)
+		db.Save(userB)
+
+	}
+
+	if param.ActionType == "2" { //取消关注
+		fmt.Println("don't have action:")
+		userBid := strconv.FormatInt(int64(param.UserBID), 10) + "#"
+		isExist := strings.Contains(userA.FollowList, userBid)
+		if !isExist {
+			fmt.Println("have not action!")
+			return nil
+			//return errors.New("relation is not exist!")
+		}
+		userA.FollowList = strings.Replace(userA.FollowList, userBid, "", -1)
+		userA.FollowCount--
+		userAid := strconv.FormatInt(int64(userid), 10) + "#"
+		userB.FollowerList = strings.Replace(userB.FollowerList, userAid, "", -1)
+		userB.FollowerCount--
+		db.Save(userA)
+		db.Save(userB)
+	}
+
+	return nil
+
 }

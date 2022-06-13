@@ -18,49 +18,54 @@ type UserListResponse struct {
 
 // RelationAction no practical effect, just check if token is valid
 func RelationAction(c *gin.Context) {
-	token := c.Query("token")
-
-	fmt.Println("Relation:")
-	if user, exist := usersLoginInfo[token]; exist {
-		params := &dto.RelationInput{}
-		if err := params.GetValidParams(c); err != nil { //获得有效参数  参数是否有错
-			out := &dto.Response{StatusCode: common.ParamsErr, StatusMsg: common.ParamsErrMsg}
-			c.JSON(http.StatusOK, out)
-			return
-		}
-		fmt.Println(token)
-
-		follow := &dao.Follow{}
-		params.UserAID = user.ID
-		u, err := follow.RelationCheck(params)
-		usersLoginInfo[token] = *u
-		if err != nil {
-			c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "to_user_id doesn't exist"})
-			return
-		}
-
-		c.JSON(http.StatusOK, Response{StatusCode: 0})
-	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-	}
-}
-
-// FollowList all users have same follow-list
-func FollowList(c *gin.Context) {
-	fmt.Println("FollowList:")
-
-	token := c.Query("token")
-	params := &dto.FollowListInput{}
+	params := &dto.RelationInput{}
 	if err := params.GetValidParams(c); err != nil { //获得有效参数  参数是否有错
 		out := &dto.Response{StatusCode: common.ParamsErr, StatusMsg: common.ParamsErrMsg}
 		c.JSON(http.StatusOK, out)
 		return
 	}
 
-	user, exist := usersLoginInfo[token]
-	if !exist {
-		out := &dto.Response{StatusCode: common.ParamsErrExist, StatusMsg: common.ParamsErrMsg}
+	fmt.Println("Relation:")
+	user, err := CheckToken(params.Token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		return
+	}
+	
+	if user.ID == params.UserBID {
+		c.JSON(http.StatusOK, Response{StatusCode: 0})
+		return
+	}
+
+	users := &dao.User{}
+	err = users.RelationCheck(user.ID, params)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "relation illegal!"})
+		return
+	}
+	//err = UpdateTokenInfo(params.Token, *users)
+	//if err != nil {
+	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token doesn't exist"})
+	//	return
+	//}
+
+	c.JSON(http.StatusOK, Response{StatusCode: 0})
+
+}
+
+// FollowList all users have same follow-list
+func FollowList(c *gin.Context) {
+	fmt.Println("FollowList:")
+
+	params := &dto.FollowListInput{}
+	if err := params.GetValidParams(c); err != nil { //获得有效参数  参数是否有错
+		out := &dto.Response{StatusCode: common.ParamsErr, StatusMsg: common.ParamsErrMsg}
 		c.JSON(http.StatusOK, out)
+		return
+	}
+	user, err := CheckToken(params.Token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
 
@@ -73,11 +78,10 @@ func FollowList(c *gin.Context) {
 	}
 
 	var outList []dto.User
-	userAIdString := strconv.Itoa(int(user.Model.ID)) //获得 A 的id
-	sA := "#" + userAIdString + "#"
+	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
 
 	for _, u := range *userList {
-		isFollow := strings.Contains(u.FollowList, sA)
+		isFollow := strings.Contains(u.FollowList, userIdString)
 		outList = append(outList, dto.User{
 			Id:            int64(u.Model.ID),
 			Name:          u.Username,
@@ -93,7 +97,6 @@ func FollowList(c *gin.Context) {
 
 // FollowerList all users have same follower list
 func FollowerList(c *gin.Context) {
-	token := c.Query("token")
 	params := &dto.FollowListInput{}
 	if err := params.GetValidParams(c); err != nil { //获得有效参数  参数是否有错
 		out := &dto.Response{StatusCode: common.ParamsErr, StatusMsg: common.ParamsErrMsg}
@@ -101,12 +104,12 @@ func FollowerList(c *gin.Context) {
 		return
 	}
 
-	user, exist := usersLoginInfo[token]
-	if !exist {
-		out := &dto.Response{StatusCode: common.ParamsErrExist, StatusMsg: common.ParamsErrMsg}
-		c.JSON(http.StatusOK, out)
+	user, err := CheckToken(params.Token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
+
 	out := &dto.FollowOutput{}
 	userList, err := user.GetFollowerList(params)
 	if err != nil {

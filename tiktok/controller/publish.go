@@ -26,29 +26,20 @@ func Publish(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	if _, exist := usersLoginInfo[params.Token]; !exist {
+
+	user, err := CheckToken(params.Token)
+	if err != nil {
 		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	fmt.Println(params)
-
-	//data, err := c.FormFile("data")
-	//if err != nil {
-	//	c.JSON(http.StatusOK, Response{
-	//		StatusCode: 1,
-	//		StatusMsg:  err.Error(),
-	//	})
-	//	return
-	//}
-
 	filename := filepath.Base(params.Data.Filename)
-	user := usersLoginInfo[params.Token]
 	finalName := fmt.Sprintf("%d_%s", user.Model.ID, filename)
 	saveFile := filepath.Join("./public/", finalName)
-	finalUrl := fmt.Sprintf("%s/public/%s", common.Url, finalName)
+	finalUrl := fmt.Sprintf("%s/static/%s", common.Url, finalName)
 	video := &dao.Video{User: user, PlayUrl: finalUrl, Title: params.Title}
 	video.Upload()
+
 	if err := c.SaveUploadedFile(params.Data, saveFile); err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -71,8 +62,8 @@ func PublishList(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	user, exist := usersLoginInfo[params.Token]
-	if !exist {
+	user, err := CheckToken(params.Token)
+	if err != nil {
 		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
 		c.JSON(http.StatusOK, out)
 		return

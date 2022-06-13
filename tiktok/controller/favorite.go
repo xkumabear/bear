@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"strings"
 	"tiktok/common"
 	"tiktok/dao"
@@ -18,14 +20,15 @@ func FavoriteAction(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	_, exist := usersLoginInfo[params.Token]
-	if !exist {
+	user, err := CheckToken(params.Token)
+	if err != nil {
 		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
 		c.JSON(http.StatusOK, out)
 		return
 	}
+
 	video := &dao.Video{}
-	err := video.UpdateVideoByFavorite(params)
+	err = video.UpdateVideoByFavorite(int64(user.ID), params)
 	if err != nil {
 		out.ResponseError(common.SqlFindErr, common.SqlFindErrMsg)
 	}
@@ -43,14 +46,17 @@ func FavoriteList(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	_, exist := usersLoginInfo[params.Token]
-	if !exist {
+	user, err := CheckToken(params.Token)
+	if err != nil {
 		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
 		c.JSON(http.StatusOK, out)
 		return
 	}
+
 	video := &dao.Video{}
-	videoList, err := video.VideoListByFavorite(params)
+	//userid, err := strconv.Atoi(params.UserID)
+
+	videoList, err := video.VideoListByFavorite(params.UserID)
 	if err != nil {
 		out.ResponseError(common.SqlFindErr, common.SqlFindErrMsg)
 		c.JSON(http.StatusOK, out)
@@ -59,8 +65,9 @@ func FavoriteList(c *gin.Context) {
 
 	var outVideoList []dto.Video
 	for _, item := range *videoList {
-		isFollow := strings.Contains(item.User.FollowList, params.UserID)
-		isFavorite := strings.Contains(item.FavoriteList, params.UserID)
+		userIdString := fmt.Sprintf("%s#", strconv.Itoa(int(user.ID)))
+		isFollow := strings.Contains(item.User.FollowerList, userIdString)
+		isFavorite := strings.Contains(item.FavoriteList, userIdString)
 		outVideoList = append(outVideoList, dto.Video{
 			Id: int64(item.Model.ID),
 			Author: dto.User{
