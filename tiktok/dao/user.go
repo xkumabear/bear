@@ -24,9 +24,6 @@ type User struct {
 	FollowerList  string `gorm:"DEFAULT:''"` // 粉丝列表  #id#
 }
 
-func init() {
-
-}
 func (u *User) conn() *gorm.DB {
 	db, err := gorm.Open(common.DRIVER, common.DSN)
 	if err != nil {
@@ -43,8 +40,15 @@ func (u *User) Find(db *gorm.DB, search *User) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &user, err
+	return &user, nil
 }
+
+func (u *User) GetUserInfo(id uint) (*User, error) {
+	db := u.conn()
+	defer db.Close()
+	return u.Find(db, &User{Model: gorm.Model{ID: id}}) //, IsDelete: 0
+}
+
 func (u *User) Save(db *gorm.DB) error {
 
 	return db.Create(u).Error
@@ -53,8 +57,8 @@ func (u *User) Save(db *gorm.DB) error {
 func (u *User) Register(param *dto.RegisterInput) (*User, error) {
 	db := u.conn()
 	defer db.Close()
-	user, err := u.Find(db, &User{Username: param.Username}) //, IsDelete: 0
-	if err == nil || user != nil {
+	user, _ := u.Find(db, &User{Username: param.Username}) //, IsDelete: 0
+	if user != nil {
 		return user, errors.New("已存在该用户，不可重复注册。") //打印堆栈
 	}
 
@@ -62,7 +66,7 @@ func (u *User) Register(param *dto.RegisterInput) (*User, error) {
 	u.Username = param.Username
 	saltPassword := GetSaltString(common.Salt, param.Password)
 	u.Password = saltPassword
-	err = u.Save(db)
+	err := u.Save(db)
 	if err != nil {
 		return user, err
 	}
@@ -104,8 +108,8 @@ func (u *User) Search(db *gorm.DB, id uint) (*User, error) {
 	}
 	fmt.Println(id, user)
 	return &user, nil // 空  找到了
-
 }
+
 func (u *User) GetUsersList(param *dto.FollowListInput) (*[]User, error) {
 	db := u.conn()
 	defer db.Close()
@@ -150,7 +154,7 @@ func (u *User) GetFollowerList(param *dto.FollowListInput) (*[]User, error) {
 
 	for _, item := range users {
 		x, _ := strconv.Atoi(item)
-		userInfo, err := u.Search(db, uint(x))
+		userInfo, err := u.Search(db, uint(x-10000000))
 		if err != nil {
 			continue
 		}
@@ -184,18 +188,16 @@ func (u *User) RelationCheck(userid uint, param *dto.RelationInput) error {
 	}
 
 	if param.ActionType == "1" { // 关注  查找 A 是否 关注 B  查找 B 是否 关注 A
-		fmt.Println("get action:")
-		userBid := strconv.FormatInt(int64(param.UserBID), 10) + "#"
-		isExist := strings.Contains(userA.FollowList, userBid)
-		if isExist {
-			fmt.Println("have action!")
-			return nil
-			//return errors.New("relation is exist!")
+		userIdStringB := fmt.Sprintf("%010d#", param.UserBID)
+		isFollow := strings.Contains(userA.FollowList, userIdStringB)
+		if isFollow {
+			return errors.New("is related!")
 		}
-		userA.FollowList += userBid
+		userA.FollowList += userIdStringB
 		userA.FollowCount++
-		userAid := strconv.FormatInt(int64(userid), 10) + "#"
-		userB.FollowerList += userAid
+
+		userIdStringA := fmt.Sprintf("%010d#", userid)
+		userB.FollowerList += userIdStringA
 		userB.FollowerCount++
 		db.Save(userA)
 		db.Save(userB)
@@ -204,7 +206,8 @@ func (u *User) RelationCheck(userid uint, param *dto.RelationInput) error {
 
 	if param.ActionType == "2" { //取消关注
 		fmt.Println("don't have action:")
-		userBid := strconv.FormatInt(int64(param.UserBID), 10) + "#"
+		//userBid := strconv.FormatInt(int64(param.UserBID), 10) + "#"
+		userBid := fmt.Sprintf("%010d#", param.UserBID)
 		isExist := strings.Contains(userA.FollowList, userBid)
 		if !isExist {
 			fmt.Println("have not action!")
@@ -213,7 +216,8 @@ func (u *User) RelationCheck(userid uint, param *dto.RelationInput) error {
 		}
 		userA.FollowList = strings.Replace(userA.FollowList, userBid, "", -1)
 		userA.FollowCount--
-		userAid := strconv.FormatInt(int64(userid), 10) + "#"
+		//userAid := strconv.FormatInt(int64(userid), 10) + "#"
+		userAid := fmt.Sprintf("%010d#", userid)
 		userB.FollowerList = strings.Replace(userB.FollowerList, userAid, "", -1)
 		userB.FollowerCount--
 		db.Save(userA)

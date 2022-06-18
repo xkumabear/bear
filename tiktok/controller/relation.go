@@ -31,13 +31,17 @@ func RelationAction(c *gin.Context) {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
-	
+
 	if user.ID == params.UserBID {
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
 		return
 	}
 
 	users := &dao.User{}
+	if user.ID == params.UserBID {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't relation self"})
+		return
+	}
 	err = users.RelationCheck(user.ID, params)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "relation illegal!"})
@@ -78,10 +82,10 @@ func FollowList(c *gin.Context) {
 	}
 
 	var outList []dto.User
-	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
-
+	//userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
+	userIdString := fmt.Sprintf("%010d#", user.Model.ID)
 	for _, u := range *userList {
-		isFollow := strings.Contains(u.FollowList, userIdString)
+		isFollow := strings.Contains(u.FollowerList, userIdString)
 		outList = append(outList, dto.User{
 			Id:            int64(u.Model.ID),
 			Name:          u.Username,

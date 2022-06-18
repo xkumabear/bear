@@ -83,41 +83,46 @@ func (c *Comment) FindCommentList(db *gorm.DB, search *CommentList) (*[]dto.Comm
 //	return db
 //}
 
-func (c *Comment) FindVideo(db *gorm.DB, videoid int64) (User, error) {
+func (c *Comment) FindVideo(db *gorm.DB, videoid int64) (Video, error) {
 
 	var video Video
-	err := db.Where("id = ?", videoid).Find(&video).Error
+	err := db.Where("id = ?", videoid).Find(&video).Preload("User").Error
+	if err != nil {
+		return video, err
+	}
+	return video, nil
+}
+
+func (c *Comment) CommentAdd(userid int64, param *dto.CommentActionInput) (User, error) {
+	db := c.conn()
+	defer db.Close()
+	video, err := c.FindVideo(db, param.VideoId)
+	if err != nil {
+		return video.User, err
+	}
+
+	c.UserID = userid
+	c.CommentText = param.CommentText
+	c.VideoId = param.VideoId
+	video.CommentCount++
+	err = db.Save(video).Error
+	if err != nil {
+		return video.User, err
+	}
+	err = db.Save(c).Error
+	//err = c.Save(db)
 	if err != nil {
 		return video.User, err
 	}
 	return video.User, nil
 }
 
-func (c *Comment) CommentAdd(userid int64, param *dto.CommentActionInput) (User, error) {
-	db := c.conn()
-	defer db.Close()
-	user, err := c.FindVideo(db, param.VideoId)
-	if err != nil {
-		return user, err
-	}
-
-	c.UserID = userid
-	c.CommentText = param.CommentText
-	c.VideoId = param.VideoId
-	err = db.Save(c).Error
-	//err = c.Save(db)
-	if err != nil {
-		return user, err
-	}
-	return user, nil
-}
-
 func (c *Comment) CommentDelte(userid int64, param *dto.CommentActionInput) (User, error) {
 	db := c.conn()
 	defer db.Close()
-	user, err := c.FindVideo(db, param.VideoId)
+	video, err := c.FindVideo(db, param.VideoId)
 	if err != nil {
-		return user, err
+		return video.User, err
 	}
 	c.UserID = userid
 	c.CommentText = param.CommentText
@@ -126,27 +131,27 @@ func (c *Comment) CommentDelte(userid int64, param *dto.CommentActionInput) (Use
 	err = db.Delete(c).Error
 	//err = c.Save(db)
 	if err != nil {
-		return user, err
+		return video.User, err
 	}
-	return user, nil
+	return video.User, nil
 }
 
 func (c *Comment) VideoCommentList(userid int64, param dto.CommentListRequire) (*[]Comment, User, error) {
 	db := c.conn()
 	defer db.Close()
 	var commentlist []Comment
-	user, err := c.FindVideo(db, param.VideoId)
+	video, err := c.FindVideo(db, param.VideoId)
 	c.UserID = userid
 	c.VideoId = param.VideoId
 	if err != nil {
-		return nil, user, err
+		return nil, video.User, err
 	}
 
 	err = db.Model(commentlist).Where("video_id = ?", param.VideoId).Preload("User").Find(&commentlist).Error
 	if err != nil {
-		return &commentlist, user, err
+		return &commentlist, video.User, err
 	}
-	return &commentlist, user, nil
+	return &commentlist, video.User, nil
 }
 
 func (c *Comment) VideoIdCheck(param Comment) (*Video, error) {

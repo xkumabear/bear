@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 	"strings"
 	"tiktok/common"
 	"tiktok/dao"
@@ -65,7 +64,8 @@ func FavoriteList(c *gin.Context) {
 
 	var outVideoList []dto.Video
 	for _, item := range *videoList {
-		userIdString := fmt.Sprintf("%s#", strconv.Itoa(int(user.ID)))
+		//userIdString := fmt.Sprintf("%s#", strconv.Itoa(int(user.ID)))
+		userIdString := fmt.Sprintf("%010d#", user.ID)
 		isFollow := strings.Contains(item.User.FollowerList, userIdString)
 		isFavorite := strings.Contains(item.FavoriteList, userIdString)
 		outVideoList = append(outVideoList, dto.Video{

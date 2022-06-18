@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -90,12 +91,23 @@ func (v *Video) UpdateVideoByFavorite(userid int64, params *dto.FavoriteInput) e
 	if err != nil {
 		return err
 	}
+	userIdString := fmt.Sprintf("%010d#", userid)
+	fmt.Println(userIdString)
+	isFavorite := strings.Contains(video.FavoriteList, userIdString)
+	fmt.Println(video.FavoriteList)
+	fmt.Println(isFavorite)
 	if params.ActionType == 1 {
+		if isFavorite {
+			return errors.New("is Favorited!")
+		}
 		video.FavoriteCount += 1
-		video.FavoriteList += strconv.FormatInt(userid, 10) + "#"
+		video.FavoriteList += userIdString
 	} else if params.ActionType == 2 {
+		if !isFavorite {
+			return errors.New("is not Favorited!")
+		}
 		video.FavoriteCount -= 1
-		video.FavoriteList = strings.Replace(video.FavoriteList, strconv.FormatInt(userid, 10)+"#", "", -1)
+		video.FavoriteList = strings.Replace(video.FavoriteList, userIdString, "", -1)
 	}
 	fmt.Println(video.FavoriteList)
 	err = db.Model(&Video{}).Where("id = ?", params.VideoID).Update(&video).Error
@@ -109,8 +121,9 @@ func (v *Video) VideoListByFavorite(userid string) (*[]Video, error) {
 	db := v.conn()
 	defer db.Close()
 	var videoList []Video
-
-	err := db.Model(videoList).Where("favorite_list like ?", "%"+userid+"%").Preload("User").Find(&videoList).Error
+	uid, _ := strconv.Atoi(userid)
+	userIdString := fmt.Sprintf("%010d", uid)
+	err := db.Model(videoList).Where("favorite_list like ?", "%"+userIdString+"%").Preload("User").Find(&videoList).Error
 	if err != nil {
 		return &videoList, err
 	}

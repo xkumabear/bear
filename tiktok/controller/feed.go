@@ -1,9 +1,9 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 	"strings"
 	"tiktok/common"
 	"tiktok/dao"
@@ -11,13 +11,7 @@ import (
 	"time"
 )
 
-type FeedResponse struct {
-	Response
-	VideoList []Video `json:"video_list,omitempty"`
-	NextTime  int64   `json:"next_time,omitempty"`
-}
-
-// Feed same demo video list for every request
+// Feed douyin/feed
 func Feed(c *gin.Context) {
 	params := &dto.FeedInput{}
 	out := &dto.FeedOutput{}
@@ -65,7 +59,8 @@ func Feed(c *gin.Context) {
 		return
 	}
 
-	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
+	//userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
+	userIdString := fmt.Sprintf("%010d#", user.Model.ID)
 	for _, item := range *videoList {
 		isFollow := strings.Contains(item.User.FollowerList, userIdString)
 		isFavorite := strings.Contains(item.FavoriteList, userIdString)

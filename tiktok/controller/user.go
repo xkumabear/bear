@@ -1,8 +1,11 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
+	"strings"
 	"tiktok/common"
 	"tiktok/dao"
 	"tiktok/dto"
@@ -13,8 +16,6 @@ import (
 // test data: username=zhanglei, password=douyin
 
 func Register(c *gin.Context) {
-	//username := c.Query("username")
-	//password := c.Query("password")
 	params := &dto.RegisterInput{}
 	out := &dto.UserLoginResponse{}
 	if err := params.GetValidParams(c); err != nil {
@@ -53,6 +54,7 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
+
 	token := SetToken(params.Username, *users)
 	out.Response = dto.Response{StatusCode: common.SuccessCode, StatusMsg: ""}
 	out.Token = token
@@ -70,19 +72,46 @@ func UserInfo(c *gin.Context) {
 		return
 	}
 	//token := c.Query("token")
-	if user, err := CheckToken(params.Token); err == nil {
+	uid, _ := strconv.Atoi(params.UserID)
+	loginUser, err := CheckToken(params.Token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't login!"})
+		return
+	}
+	if loginUser.ID == uint(uid) {
 		c.JSON(http.StatusOK, dto.UserOutput{
 			Response: dto.Response{StatusCode: 0},
 			User: dto.User{
-				Id:            int64(user.Model.ID),
-				Name:          user.Name,
-				FollowCount:   user.FollowCount,
-				FollowerCount: user.FollowerCount,
-				IsFollow:      true,
+				Id:            int64(loginUser.Model.ID),
+				Name:          loginUser.Name,
+				FollowCount:   loginUser.FollowCount,
+				FollowerCount: loginUser.FollowerCount,
+				IsFollow:      false,
 			},
 		})
 		return
 	}
+
+	user := &dao.User{}
+	userinfo, err := user.GetUserInfo(uint(uid))
+	if err != nil {
+		out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
+		c.JSON(http.StatusOK, out)
+	}
+
+	userIdString := fmt.Sprintf("%010d#", loginUser.Model.ID)
+	isFollow := strings.Contains(userinfo.FollowerList, userIdString)
+	c.JSON(http.StatusOK, dto.UserOutput{
+		Response: dto.Response{StatusCode: 0},
+		User: dto.User{
+			Id:            int64(userinfo.Model.ID),
+			Name:          userinfo.Name,
+			FollowCount:   userinfo.FollowCount,
+			FollowerCount: userinfo.FollowerCount,
+			IsFollow:      isFollow,
+		},
+	})
+
 	out.ResponseError(common.ParamsErrExist, common.ParamsErrMsg)
 	c.JSON(http.StatusOK, out)
 	return

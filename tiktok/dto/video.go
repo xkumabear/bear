@@ -6,8 +6,8 @@ import (
 )
 
 type FeedInput struct {
-	Token      string `json:"token" form:"token"`
-	LatestTime int64  `json:"latest_time" form:"latest_time" `
+	Token      string `json:"token" form:"token"`              // 验权token
+	LatestTime int64  `json:"latest_time" form:"latest_time" ` // 限制返回视频的最新时间戳
 }
 
 func (params *FeedInput) GetValidParams(c *gin.Context) error {

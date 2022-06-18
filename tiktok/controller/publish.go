@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"tiktok/common"
 	"tiktok/dao"
@@ -55,7 +54,7 @@ func Publish(c *gin.Context) {
 		return
 	}
 	name := strings.Split(filename, ".")
-	finalImgName := fmt.Sprintf("%d_%s.jpeg", user.Model.ID, name)
+	finalImgName := fmt.Sprintf("%d_%s.jpeg", user.Model.ID, name[0])
 	saveImgFile := filepath.Join("./public/", finalImgName)
 	finalImgUrl := fmt.Sprintf("%s/static/%s", common.Url, finalImgName)
 	err = imaging.Save(img, saveImgFile)
@@ -89,14 +88,15 @@ func PublishList(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
+	//userIdString := strconv.FormatInt(int64(user.Model.ID), 10) + "#"
+	userIdString := fmt.Sprintf("%010d#", user.Model.ID)
 	video := &dao.Video{}
 	videoList, err := video.PublishVideoList(params)
 	if err != nil {
 		out.ResponseError(common.SqlFindErr, common.SqlFindErrMsg)
 	}
-	var outVideoList []dto.Video
 
+	var outVideoList []dto.Video
 	for _, item := range *videoList {
 		isFollow := strings.Contains(item.User.FollowerList, userIdString)
 		isFavorite := strings.Contains(item.FavoriteList, userIdString)

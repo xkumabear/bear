@@ -49,7 +49,7 @@ func CheckToken(token string) (dao.User, error) {
 	if user, exist := UsersLoginInfo[token]; exist && now.Before(user.availableTime) {
 		return user.User, nil
 	}
-	return dao.User{}, errors.New("")
+	return dao.User{}, errors.New("user not login!")
 }
 
 func SetToken(username string, user dao.User) string {
